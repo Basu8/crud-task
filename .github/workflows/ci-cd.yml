@@ -40,20 +40,38 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/crud-dd-frontend:latest
 
+  # deploy:
+  #   needs: build-and-push
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Trigger remote deploy (SSH)
+  #       uses: appleboy/ssh-action@v0.1.8
+  #       with:
+  #         host: ${{ secrets.SSH_HOST }}
+  #         username: ${{ secrets.SSH_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         port: ${{ secrets.SSH_PORT }} # optional, default 22
+  #         script: |
+  #           cd ~/deploy || mkdir -p ~/deploy && cd ~/deploy
+  #           # Pull latest compose file if you prefer to use git to deploy -- else ensure docker-compose.prod.yml is present
+  #           # Ensure Docker is running; then pull images and restart
+  #           docker compose pull
+  #           docker compose up -d --remove-orphans
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger remote deploy (SSH)
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }} # optional, default 22
-          script: |
-            cd ~/deploy || mkdir -p ~/deploy && cd ~/deploy
-            # Pull latest compose file if you prefer to use git to deploy -- else ensure docker-compose.prod.yml is present
-            # Ensure Docker is running; then pull images and restart
-            docker compose pull
-            docker compose up -d --remove-orphans
+    - name: SSH into VM and deploy
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        port: ${{ secrets.SSH_PORT }}
+        script: |
+          mkdir -p ~/deploy
+          cd ~/deploy
+          sudo docker compose pull
+          sudo docker compose up -d --remove-orphans
+          sudo docker compose ps
